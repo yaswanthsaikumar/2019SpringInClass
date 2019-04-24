@@ -25,7 +25,7 @@ export default {
     },
     async mounted(){
         this.friends = await GetFriends();
-    },
+    }, 
 }
 </script>
 

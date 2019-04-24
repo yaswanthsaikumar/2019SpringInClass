@@ -1,13 +1,14 @@
 const conn = require('./mysql_connection');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 const SALT_ROUNDS = 8;
 const JWT_SECRET = process.env.JWT_SECRET || 'some long string..';
 
 const model = {
     async getAll(){
-        return await conn.query("SELECT * FROM 2019Spring_Persons");
+        return await conn.query("SELECT * FROM 2019Spring_Persons");   
     },
     async get(id){
         const data = await conn.query("SELECT * FROM 2019Spring_Persons WHERE Id=?", id);
@@ -26,7 +27,7 @@ const model = {
         const hashedPassword = await bcrypt.hash(input.Password, SALT_ROUNDS)
         const data = await conn.query(
             "INSERT INTO 2019Spring_Persons (FirstName,LastName,Birthday,Password,created_at) VALUES (?)",
-            [[input.FirstName, input.LastName, input.Birthday, hashedPassword, new Date()]]
+            [[input.FirstName, input.LastName, input.Birthday, hashedPassword, new Date()]] 
         );
         return await model.get(data.insertId);
     },
@@ -43,11 +44,23 @@ const model = {
         }
         const x = await bcrypt.compare(password, data[0].Password);
         if(x){
-            const user = { ...data[0], password: null };
+            const user = { ...data[0], Password: null };
             return { user, token: jwt.sign(user, JWT_SECRET) };
         }else{
             throw Error('Wrong Password');
         }
+    },
+    async facebookLogin(token){
+        const fbMe = await axios.get(`https://graph.facebook.com/me?fields=id,name,email&access_token=${token}`);
+        console.log({fbMe});
+        const data = await conn.query(`SELECT * FROM 2019Spring_Persons P
+                        Join 2019Spring_ContactMethods CM On CM.Person_Id = P.id
+                    WHERE CM.Type = 'Facebook' AND CM.Value=?`, fbMe.data.id);
+        if(data.length == 0){
+            throw Error('User Not Found');
+        }
+        const user = { ...data[0], Password: null };
+        return { user, token: jwt.sign(user, JWT_SECRET), oAuthUser: fbMe.data };
     },
     async changePassword(email, oldPassword, newPassword){
         const data = await conn.query(`SELECT * FROM 2019Spring_Persons P
@@ -61,7 +74,7 @@ const model = {
             await conn.query(`Update 2019Spring_Persons P
                             Set ?
                         WHERE P.id=?`,[ {Password: hashedPassword }, data[0].id]);
-            return { status: "success", msg: "Password Succesfully Changed" };
+            return { status: "success", message: "Password Succesfully Changed" };
         }else{
             throw Error('Wrong Password');
         }

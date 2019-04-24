@@ -53,7 +53,7 @@
         <div class="card-body">
           <h4 class="card-title">Congrats! You've Registered</h4>
           <p class="card-text">
-            {{newUser.FirstName}} {{newUser.LastName}}
+            {{newUser.FirstName}} {{newUser.LastName}} 
           </p>
         </div>
       </div>
@@ -65,7 +65,6 @@
 import { Globals } from "@/models/api";
 import { Register } from "@/models/users";
 import toastr from 'toastr';
-import 'toastr/build/toastr.css';
 
 export default {
     data: ()=> ({
@@ -80,7 +79,7 @@ export default {
               toastr.success("You've registered successfully!")
             } catch (error) {
               Globals.errors.push(error);
-              toastr.error(error.msg);
+              toastr.error(error.message);
             }
         }
     }
